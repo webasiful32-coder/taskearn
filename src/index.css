@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --color-bg-base: #fff7fa;
+    --color-pink-primary: #ec4899;
+    --color-rose-primary: #f43f5e;
+  }
+
+  body {
+    background-color: #fff9fb;
+    color: #1e293b;
+    background-image: 
+      radial-gradient(circle at 12% 15%, rgba(244, 114, 182, 0.16) 0%, transparent 45%),
+      radial-gradient(circle at 88% 22%, rgba(251, 113, 133, 0.14) 0%, transparent 45%),
+      radial-gradient(circle at 50% 85%, rgba(244, 63, 94, 0.08) 0%, transparent 55%),
+      radial-gradient(circle at 10% 85%, rgba(253, 164, 175, 0.12) 0%, transparent 40%);
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    min-height: 100vh;
+  }
+
+  ::selection {
+    background: #fbcfe8;
+    color: #831843;
+  }
+
+  /* Custom scrollbar styled with white & pink mixed gradient */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #fff1f5;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #f472b6 0%, #ec4899 50%, #f43f5e 100%);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #ec4899 0%, #db2777 50%, #e11d48 100%);
+  }
+}
+
+/* White Pink Gradient Utility Classes */
+.white-pink-gradient-bg {
+  background: linear-gradient(135deg, #ffffff 0%, #fff1f5 50%, #fce7f3 100%);
+}
+
+.white-pink-gradient-text {
+  background: linear-gradient(135deg, #db2777 0%, #e11d48 50%, #f43f5e 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.white-pink-card {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(244, 114, 182, 0.3);
+  box-shadow: 0 4px 20px -2px rgba(244, 114, 182, 0.12);
+}
+
+.white-pink-card:hover {
+  border-color: rgba(236, 72, 153, 0.5);
+  box-shadow: 0 10px 25px -4px rgba(244, 114, 182, 0.2);
+}

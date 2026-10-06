@@ -1,0 +1,6 @@
+{
+  "name": "TaskEarn - Micro-Task Earning & Freelance Reward Platform",
+  "description": "Production-grade micro-task earning platform where users complete verified jobs, submit proof, earn instant payouts, request withdrawals, and earn referral commissions with full creator and admin moderation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,242 @@
+// Prisma Schema for Task Earning Platform
+// Configured for Neon PostgreSQL
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  USER
+  CREATOR
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
+enum TaskCategory {
+  SOCIAL_MEDIA
+  APP_TESTING
+  SURVEYS
+  DATA_LABELING
+  CONTENT_WRITING
+  WEBSITE_AUDIT
+  VIDEO_REVIEW
+  RESEARCH
+  OTHER
+}
+
+enum TaskDifficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum TaskStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum ProofType {
+  SCREENSHOT_URL
+  TEXT_ANSWER
+  LINK_URL
+  SURVEY_CODE
+  MULTI_STEP
+}
+
+enum SubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum TransactionType {
+  TASK_EARNING
+  TASK_BUDGET_ESCROW
+  TASK_BUDGET_REFUND
+  REFERRAL_COMMISSION
+  WITHDRAWAL_REQUEST
+  WITHDRAWAL_REFUND
+  ADMIN_ADJUSTMENT
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum WithdrawalMethod {
+  PAYPAL
+  CRYPTO_USDT
+  BANK_TRANSFER
+  WISE
+  GIFT_CARD
+}
+
+enum WithdrawalStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  REJECTED
+}
+
+model User {
+  id              String         @id @default(uuid())
+  email           String         @unique
+  passwordHash    String
+  name            String
+  avatar          String?
+  bio             String?
+  role            Role           @default(USER)
+  status          UserStatus     @default(ACTIVE)
+  
+  // Financial balances
+  balance         Float          @default(0.0) // Available for withdrawal
+  pendingEarnings Float          @default(0.0) // Waiting for submission approvals
+  totalEarned     Float          @default(0.0) // Lifetime earnings
+  totalWithdrawn  Float          @default(0.0) // Lifetime withdrawn
+  
+  // Referral system
+  referralCode    String         @unique
+  referredById    String?
+  referredBy      User?          @relation("UserReferrals", fields: [referredById], references: [id], onDelete: SetNull)
+  referrals       User[]         @relation("UserReferrals")
+  referralEarnings Float         @default(0.0)
+
+  // Relationships
+  createdTasks    Task[]         @relation("CreatorTasks")
+  submissions     Submission[]
+  transactions    Transaction[]
+  withdrawals     Withdrawal[]
+  notifications   Notification[]
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([email])
+  @@index([referralCode])
+  @@index([role])
+}
+
+model Task {
+  id               String          @id @default(uuid())
+  title            String
+  description      String
+  instructions     String          @db.Text
+  category         TaskCategory    @default(OTHER)
+  difficulty       TaskDifficulty  @default(EASY)
+  status           TaskStatus      @default(ACTIVE)
+  rewardAmount     Float           // Payout per approved submission ($)
+  totalSlots       Int             // Maximum number of workers who can complete
+  completedSlots   Int             @default(0)
+  totalBudget      Float           // rewardAmount * totalSlots (+ fee)
+  remainingBudget  Float
+  timeEstimateMins Int             @default(5)
+  proofType        ProofType       @default(SCREENSHOT_URL)
+  proofInstructions String         @db.Text
+  targetCountry    String?         @default("GLOBAL")
+  
+  // Creator relationship
+  creatorId        String
+  creator          User            @relation("CreatorTasks", fields: [creatorId], references: [id], onDelete: Cascade)
+  
+  submissions      Submission[]
+
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([status])
+  @@index([category])
+  @@index([creatorId])
+  @@index([rewardAmount])
+}
+
+model Submission {
+  id              String            @id @default(uuid())
+  taskId          String
+  task            Task              @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  workerId        String
+  worker          User              @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  
+  proofText       String?           @db.Text
+  proofUrls       String[]          // Screenshot or link URLs
+  notes           String?
+  status          SubmissionStatus  @default(PENDING)
+  reviewNotes     String?
+  rewardPaid      Float             @default(0.0)
+  
+  submittedAt     DateTime          @default(now())
+  reviewedAt      DateTime?
+
+  @@unique([taskId, workerId]) // Worker can submit once per task
+  @@index([taskId])
+  @@index([workerId])
+  @@index([status])
+}
+
+model Transaction {
+  id              String            @id @default(uuid())
+  userId          String
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount          Float
+  type            TransactionType
+  status          TransactionStatus @default(COMPLETED)
+  description     String
+  referenceId     String?           // Associated taskId, submissionId, or withdrawalId
+
+  createdAt       DateTime          @default(now())
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model Withdrawal {
+  id              String            @id @default(uuid())
+  userId          String
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount          Float
+  fee             Float             @default(0.0)
+  netAmount       Float
+  method          WithdrawalMethod
+  accountDetails  String            // Email, Wallet Address, or IBAN
+  status          WithdrawalStatus  @default(PENDING)
+  transactionHash String?
+  adminNotes      String?
+
+  requestedAt     DateTime          @default(now())
+  processedAt     DateTime?
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Notification {
+  id              String            @id @default(uuid())
+  userId          String
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title           String
+  message         String
+  type            String            @default("GENERAL") // TASK_APPROVED, WITHDRAWAL_PAID, REFERRAL, etc.
+  link            String?
+  isRead          Boolean           @default(false)
+
+  createdAt       DateTime          @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+}
